@@ -1,55 +1,89 @@
 import * as THREE from 'three';
 
+let camera, scene, renderer, group, controls;
+let mouseX = 0, mouseY = 0;
+
 const windowWidth = window.innerWidth;
 const windowHeight = window.innerHeight;
 
-// Setup scene
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, windowWidth / windowHeight, 0.1, 1000 );
+init();
+animate();
 
-scene.background = ( new THREE.Color('skyblue'));
-camera.position.z = 5;
+function init() 
+{
+    // Camera setup
+    camera = new THREE.PerspectiveCamera( 75, windowWidth / windowHeight, 0.1, 2000 );
+    camera.position.z = 50;
 
-// Cube class
-function Cube( x, y, z ) {
-    let geometry = new THREE.BoxGeometry( x, y, z ) ;
-    let material = new THREE.MeshBasicMaterial();
-    let cube = new THREE.Mesh( geometry, material );
+    // Scene setup
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0xffffff );
 
-    return cube;
-}
+    // Render setup
+    renderer = new THREE.WebGLRenderer( {antialias: true });
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( windowWidth, windowHeight );
+    document.body.appendChild( renderer.domElement );
 
-let cubeArray = [];
-for ( let i = 0; i < 3; i++) {
-    cubeArray.push( new Cube( 1, 1, 1) );
-    cubeArray[i].position.x = (Math.random() * (3 - -3) + -3);
-    scene.add( cubeArray[i] );
-}
+    // Window Resize
+    window.addEventListener( 'resize', onWindowResize, false );
 
-// Create the WebGL renderer
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize( windowWidth, windowHeight );
-
-// Render
-document.body.appendChild( renderer.domElement );
-
-let shouldGoRight = false;
-function animate() {
-    requestAnimationFrame( animate );
-
-    for (let i = 0; i < cubeArray.length; i++) {
-        let randomSpeed = (Math.random() * (0.1 - 0.01) + 0.01);
-        if ( cubeArray[i].position.x > 3 ) {
-            shouldGoRight = false;
-        } else if ( cubeArray[i].position.x < -3 ) {
-            shouldGoRight = true;
-        }
+    // Create cube
+    group = new THREE.Group();
+    let geometry = new THREE.BoxBufferGeometry( 10, 10, 10 );
+    let material = new THREE.MeshNormalMaterial();
     
-        cubeArray[i].position.x = cubeArray[i].position.x += shouldGoRight ? randomSpeed : -randomSpeed;
-        cubeArray[i].rotation.z = cubeArray[i].rotation.z += shouldGoRight ? randomSpeed: -randomSpeed;
+    for ( let i = 0; i < 200; i++) {
+        let mesh = new THREE.Mesh( geometry, material );
+        mesh.position.x = (Math.random()*140)-80;
+        mesh.position.y = (Math.random()*140)-80;
+        mesh.position.z = (Math.random()*140)-80;
+
+        mesh.rotation.x = Math.random() * 2 * Math.PI;
+        mesh.rotation.y = Math.random() * 2 * Math.PI;
+        
+        mesh.matrixAutoUpdate = false;
+	    mesh.updateMatrix();
+
+        group.add( mesh );
+
     }
 
-    // Render the scene and add the camera
-    renderer.render( scene, camera );
-} animate ();
+    // Add scene objects
+    scene.add( group );
 
+}
+
+function animate() 
+{
+    requestAnimationFrame( animate );
+    render();
+}
+
+function render() 
+{
+    // Setup rotation speed
+    let time = Date.now() * 0.001;
+    let rotateX = Math.sin( time * 0.7 ) * 0.5;
+    let rotateY = Math.sin( time * 0.3 ) * 0.5;
+    let rotateZ = Math.sin( time * 0.2 ) * 0.5;
+
+    // Update position
+    camera.position.x += ( mouseX - camera.position.x ) * 0.05;
+    camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
+    camera.lookAt( scene.position );
+
+    // Animation
+    group.rotation.x = rotateX;
+    group.rotation.y = rotateY;
+    group.rotation.z = rotateZ;
+
+    renderer.render( scene, camera );
+}
+
+function onWindowResize()
+{
+    camera.aspect = windowWidth / windowHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( windowWidth, windowHeight );
+}
